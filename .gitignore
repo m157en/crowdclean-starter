@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Tests
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+
+# Local database and generated audio
+*.db
+*.sqlite
+*.sqlite3
+backend/storage/*
+!backend/storage/.gitkeep
