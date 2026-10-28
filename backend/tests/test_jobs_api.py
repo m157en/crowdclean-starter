@@ -149,3 +149,79 @@ def test_update_unknown_segment_returns_404(client):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Audio segment not found"
+
+def test_job_lifecycle_decision_persists_across_rest_and_graphql(
+    client, db_session
+):
+    from app.models import AudioSegment
+
+    # 1. Создаём задание через REST API
+    response = client.post(
+        "/api/v1/jobs/url",
+        json={"source_url": "https://example.com/integration-test.mp3"},
+    )
+
+    assert response.status_code == 202
+    job = response.json()
+    job_id = job["id"]
+    assert job["status"] == "queued"
+
+    # 2. Проверяем, что задание доступно через GET
+    response = client.get(f"/api/v1/jobs/{job_id}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == job_id
+    assert response.json()["status"] == "queued"
+
+    # 3. Создаём тестовый сегмент.
+    # В реальном сервисе его будет создавать аудиообработчик.
+    segment = AudioSegment(
+        job_id=job_id,
+        start_seconds=12.0,
+        end_seconds=15.0,
+        confidence=0.93,
+    )
+    db_session.add(segment)
+    db_session.commit()
+    segment_id = segment.id
+
+    # 4. Меняем решение по сегменту через REST
+    response = client.patch(
+        f"/api/v1/segments/{segment_id}",
+        json={"decision": "remove"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "remove"
+
+    # 5. Проверяем сохранённое решение через GraphQL
+    response = client.post(
+        "/graphql",
+        json={
+            "query": """
+                query GetSegments($jobId: String!) {
+                    segments(jobId: $jobId) {
+                        id
+                        jobId
+                        startSeconds
+                        endSeconds
+                        decision
+                    }
+                }
+            """,
+            "variables": {"jobId": job_id},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert "errors" not in body
+    segments = body["data"]["segments"]
+
+    assert len(segments) == 1
+    assert segments[0]["id"] == segment_id
+    assert segments[0]["jobId"] == job_id
+    assert segments[0]["decision"] == "remove"
+    assert segments[0]["startSeconds"] == 12.0
+    assert segments[0]["endSeconds"] == 15.0
