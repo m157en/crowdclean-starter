@@ -38,7 +38,7 @@ cd backend && \
 .venv-audio/bin/python -m pytest -q && \
 .venv-audio/bin/python -m app.audio_preview
 ```
-If `git status --short` shows local modifications, inspect them before pulling; never reset/discard. If tests fail, fix in feature branch and rerun. Expected test count is approximately 52 (48 last verified plus 1 boundary test, 1 filtering test, 1 relative UI test, 1 save test, and 3 preview tests; actual count must be checked rather than assumed).
+If `git status --short` shows local modifications, inspect them before pulling; never reset/discard. If tests fail, fix in feature branch and rerun. Test count is not confirmed after recent commits; rely on the actual pytest output.
 
 ## Next work after preview generation
 1. A/B listen to each of the eight pairs (original vs ducked); measure music damage subjectively. **No full-mix export yet.**
