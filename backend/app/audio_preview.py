@@ -7,6 +7,7 @@ import argparse
 import json
 import math
 import os
+import shutil
 import subprocess
 import tempfile
 import wave
@@ -64,8 +65,8 @@ def create_previews(source: Path, dataset: Path, output: Path, *, gain: float = 
     if output.exists():
         raise FileExistsError(f"Output already exists: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".crowdclean-preview-", dir=output.parent) as temporary:
-        staging = Path(temporary)
+    staging = Path(tempfile.mkdtemp(prefix=".crowdclean-preview-", dir=output.parent))
+    try:
         report = []
         for item in targets:
             boundary = item["precise_boundary"]
@@ -99,6 +100,9 @@ def create_previews(source: Path, dataset: Path, output: Path, *, gain: float = 
         if output.exists():
             raise FileExistsError(output)
         staging.rename(output)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
     return report
 
 
