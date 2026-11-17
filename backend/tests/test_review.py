@@ -12,7 +12,7 @@ def test_review_workflow(client, tmp_path):
     (directory / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
     assert client.get("/review").status_code == 200
-    assert client.get("/review/items").json() == manifest
+    assert client.get("/review/items").json() == []
     response = client.get("/review/audio/review-001.wav")
     assert response.status_code == 200
     assert response.content == b"RIFFfake"
@@ -21,6 +21,7 @@ def test_review_workflow(client, tmp_path):
     response = client.patch("/review/items/review-001.wav", json={"decision": "remove"})
     assert response.status_code == 200
     assert response.json()["decision"] == "remove"
+    assert client.get("/review/items").json()[0]["file"] == audio.name
     assert json.loads((directory / "manifest.json").read_text())[0]["decision"] == "remove"
     assert client.patch("/review/items/review-001.wav", json={"decision": "invalid"}).status_code == 422
     assert client.patch("/review/items/review-999.wav", json={"decision": "keep"}).status_code == 404
