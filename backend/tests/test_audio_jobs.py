@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from app import audio_jobs
+from app import audio_pipeline, audio_preprocessing
 
 
 def _upload(client):
@@ -29,8 +29,8 @@ def test_analyze_upload_persists_pending_segments(client, monkeypatch):
             {"start": 7.0, "end": 8.0},
         ]}
 
-    monkeypatch.setattr(audio_jobs, "prepare_audio", fake_prepare)
-    monkeypatch.setattr(audio_jobs, "analyze_wav", fake_analyze)
+    monkeypatch.setattr(audio_preprocessing, "prepare_audio", fake_prepare)
+    monkeypatch.setattr(audio_pipeline, "analyze_wav", fake_analyze)
 
     response = client.post(f"/api/v1/jobs/{job_id}/analyze")
     assert response.status_code == 200, response.text
@@ -60,7 +60,7 @@ def test_analyze_failure_sets_failed_without_segments(client, monkeypatch):
     def broken_prepare(source, destination):
         raise RuntimeError("bad audio")
 
-    monkeypatch.setattr(audio_jobs, "prepare_audio", broken_prepare)
+    monkeypatch.setattr(audio_preprocessing, "prepare_audio", broken_prepare)
     response = client.post(f"/api/v1/jobs/{job_id}/analyze")
     assert response.status_code == 200, response.text
     assert response.json()["status"] == "failed"
@@ -91,9 +91,9 @@ def test_analyze_rejects_invalid_intervals(client, monkeypatch):
         Path(destination).write_bytes(b"prepared")
         return {"duration_seconds": 5.0}
 
-    monkeypatch.setattr(audio_jobs, "prepare_audio", fake_prepare)
+    monkeypatch.setattr(audio_preprocessing, "prepare_audio", fake_prepare)
     monkeypatch.setattr(
-        audio_jobs, "analyze_wav",
+        audio_pipeline, "analyze_wav",
         lambda path: {"speech_intervals": [{"start": 4.0, "end": 3.0}]},
     )
     response = client.post(f"/api/v1/jobs/{job_id}/analyze")
