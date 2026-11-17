@@ -2,8 +2,8 @@
   "source": "lost-frequencies.mp3",
   "detector": "silero-vad",
   "threshold": 0.3,
-  "annotation_level": "review_episode",
-  "note": "KEEP/REMOVE labels apply to review clips including context, not exact speech boundaries; never use these ranges for destructive removal.",
+  "annotation_level": "review_episode_with_human_refined_remove_boundaries",
+  "note": "KEEP/REMOVE labels refer to review episodes. Only precise_boundary on REMOVE items denotes human-refined shout time in the original mix; whole review ranges must never be removed. Boundaries are approximate to ~1 second and must not be treated as isolated vocals.",
   "items": [
     {
       "file": "review-001.wav",
@@ -45,7 +45,11 @@
       "start": 1397.3,
       "end": 1404.7,
       "detected_intervals": 1,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 1398.3,
+        "end": 1402.3
+      }
     },
     {
       "file": "review-007.wav",
@@ -94,28 +98,44 @@
       "start": 2347,
       "end": 2357.7,
       "detected_intervals": 3,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 2347,
+        "end": 2354
+      }
     },
     {
       "file": "review-014.wav",
       "start": 2361.4,
       "end": 2367.7,
       "detected_intervals": 1,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 2363.4,
+        "end": 2365.4
+      }
     },
     {
       "file": "review-015.wav",
       "start": 2369.7,
       "end": 2374.1,
       "detected_intervals": 1,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 2370.7,
+        "end": 2371.7
+      }
     },
     {
       "file": "review-016.wav",
       "start": 2498.7,
       "end": 2507,
       "detected_intervals": 2,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 2500.7,
+        "end": 2504.7
+      }
     },
     {
       "file": "review-017.wav",
@@ -129,14 +149,22 @@
       "start": 2642.9,
       "end": 2655.5,
       "detected_intervals": 3,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 2644.9,
+        "end": 2652.9
+      }
     },
     {
       "file": "review-019.wav",
       "start": 2656.6,
       "end": 2662.1,
       "detected_intervals": 1,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 2658.6,
+        "end": 2659.6
+      }
     },
     {
       "file": "review-020.wav",
@@ -171,7 +199,11 @@
       "start": 3318.2,
       "end": 3331.5,
       "detected_intervals": 2,
-      "decision": "remove"
+      "decision": "remove",
+      "precise_boundary": {
+        "start": 3320.2,
+        "end": 3327.2
+      }
     },
     {
       "file": "review-025.wav",
