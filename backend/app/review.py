@@ -2,12 +2,13 @@
 import json
 import os
 import tempfile
+import math
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.config import settings
 
@@ -43,6 +44,48 @@ class ReviewDecision(BaseModel):
     decision: Literal["pending", "keep", "remove"]
 
 
+
+class Boundary(BaseModel):
+    start: float
+    end: float
+
+    @model_validator(mode="after")
+    def check_order(self):
+        if not (math.isfinite(self.start) and math.isfinite(self.end) and self.start < self.end):
+            raise ValueError("Invalid boundary")
+        return self
+
+
+@router.put("/items/{filename}/boundary")
+def save_boundary(filename: str, payload: Boundary):
+    path, items = read_manifest()
+    item = next((x for x in items if x["file"] == filename), None)
+    if item is None:
+        raise HTTPException(404, "Unknown review clip")
+    if item["decision"] != "remove":
+        raise HTTPException(409, "Only REMOVE clips can have boundaries")
+    if not (item["start"] <= payload.start < payload.end <= item["end"]):
+        raise HTTPException(422, "Boundary outside review clip")
+    item["precise_boundary"] = {"start": payload.start, "end": payload.end}
+    atomic_manifest(path, items)
+    return item
+
+
+def atomic_manifest(path: Path, items: list[dict]):
+    temp_name = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, prefix=".manifest-", suffix=".tmp", delete=False) as handle:
+            temp_name = handle.name
+            json.dump(items, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_name, path)
+    finally:
+        if temp_name and os.path.exists(temp_name):
+            os.unlink(temp_name)
+
+
 @router.get("", response_class=HTMLResponse)
 def review_page():
     review_dir()
@@ -74,19 +117,9 @@ def set_review_decision(filename: str, payload: ReviewDecision):
     if match is None:
         raise HTTPException(404, "Unknown review clip")
     match["decision"] = payload.decision
-    # Atomic replace avoids partially written JSON if interrupted.
-    temp_name = None
-    try:
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, prefix=".manifest-", suffix=".tmp", delete=False) as handle:
-            temp_name = handle.name
-            json.dump(items, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temp_name, path)
-    finally:
-        if temp_name and os.path.exists(temp_name):
-            os.unlink(temp_name)
+    if payload.decision != "remove":
+        match.pop("precise_boundary", None)
+    atomic_manifest(path, items)
     return match
 
 
@@ -108,7 +141,16 @@ audio{width:100%;margin:18px 0}small{color:#9ca3af}#error{color:#fca5a5}
 <nav><button id="prev">← Назад</button><span id="position"></span><button id="next">Далее →</button></nav>
 <h2 id="filename"></h2><p id="timing"></p><audio id="player" controls preload="none"></audio>
 <div><button class="keep" data-decision="keep">KEEP</button><button class="remove" data-decision="remove">REMOVE</button><button class="pending" data-decision="pending">Сбросить</button></div>
-<p id="decision"></p><p id="error" role="alert"></p>
+<p id="decision"></p>
+<section id="boundarySection" hidden>
+<p>Точные границы выкрика (секунды от начала микса)</p>
+<label>Начало <input id="start" type="number" step="0.01"></label>
+<button id="markStart">Начало = позиция плеера</button>
+<p><label>Конец <input id="end" type="number" step="0.01"></label>
+<button id="markEnd">Конец = позиция плеера</button></p>
+<button id="preview">Прослушать диапазон</button>
+<button id="saveBoundary">Сохранить границы</button>
+<p id="boundaryStatus"></p></section><p id="error" role="alert"></p>
 </div>
 <script>
 let items=[],index=0;
@@ -120,6 +162,10 @@ function render(){
  el("timing").textContent="Время: "+item.start.toFixed(1)+"–"+item.end.toFixed(1)+" с · Интервалов: "+item.detected_intervals;
  el("player").src="/review/audio/"+encodeURIComponent(item.file);
  el("decision").textContent="Решение: "+item.decision.toUpperCase();
+ el("boundarySection").hidden=item.decision!=="remove";
+ el("start").value=item.precise_boundary?.start ?? "";
+ el("end").value=item.precise_boundary?.end ?? "";
+ el("boundaryStatus").textContent=item.precise_boundary?"Границы сохранены":"Границы не заданы";
  el("progress").textContent=items.filter(x=>x.decision!=="pending").length+" / "+items.length+" размечено";
  el("prev").disabled=index===0;el("next").disabled=index===items.length-1;
  el("error").textContent="";
@@ -132,6 +178,25 @@ async function decide(decision){
  items[index]=await response.json();render();
  }catch(e){el("error").textContent=e.message;}
 }
+
+el("markStart").onclick=()=>{el("start").value=(items[index].start+el("player").currentTime).toFixed(2)};
+el("markEnd").onclick=()=>{el("end").value=(items[index].start+el("player").currentTime).toFixed(2)};
+el("preview").onclick=()=>{
+ const item=items[index],start=Number(el("start").value),end=Number(el("end").value);
+ if(!el("start").value||!el("end").value||start<item.start||end>item.end||start>=end){el("error").textContent="Проверь границы";return;}
+ const player=el("player");player.currentTime=start-item.start;player.play();
+ const stop=()=>{if(player.currentTime>=end-item.start){player.pause();player.removeEventListener("timeupdate",stop)}};
+ player.addEventListener("timeupdate",stop);
+};
+el("saveBoundary").onclick=async()=>{
+ const item=items[index],start=Number(el("start").value),end=Number(el("end").value);
+ if(!el("start").value||!el("end").value||!Number.isFinite(start)||!Number.isFinite(end)||start<item.start||end>item.end||start>=end){el("error").textContent="Некорректные границы";return;}
+ try{
+ const response=await fetch("/review/items/"+encodeURIComponent(item.file)+"/boundary",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({start,end})});
+ if(!response.ok)throw Error("HTTP "+response.status);
+ items[index]=await response.json();render();
+ }catch(e){el("error").textContent=e.message}
+};
 el("prev").onclick=()=>{index--;render()};
 el("next").onclick=()=>{index++;render()};
 document.querySelectorAll("[data-decision]").forEach(b=>b.onclick=()=>decide(b.dataset.decision));
