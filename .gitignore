@@ -24,3 +24,6 @@ htmlcov/
 *.sqlite3
 backend/storage/*
 !backend/storage/.gitkeep
+.venv-audio/
+*.egg-info/
+*.bak
