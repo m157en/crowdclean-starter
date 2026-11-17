@@ -54,3 +54,9 @@ def test_review_ui_uses_clip_relative_seconds(client):
     assert "секунды от начала этого фрагмента" in response.text
     assert "start:item.start+start,end:item.start+end" in response.text
     assert "player.currentTime=start;player.play()" in response.text
+
+
+def test_review_save_button_validates_clip_relative_range(client):
+    html = client.get("/review").text
+    assert 'start<0||end>item.end-item.start||start>=end' in html
+    assert 'start<item.start||end>item.end||start>=end' not in html
