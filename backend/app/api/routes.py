@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.audio_storage import InvalidAudioFile, persist_upload
+from app.audio_jobs import JobProcessingError, process_upload_job
 from app.db import get_db
 from app.models import AudioJob, AudioSegment
 from app.schemas import (
@@ -85,3 +86,14 @@ def update_segment_decision(
     db.commit()
     db.refresh(segment)
     return segment
+
+
+@router.post("/jobs/{job_id}/analyze", response_model=AudioJobRead)
+def analyze_job(job_id: str, db: Session = Depends(get_db)) -> AudioJob:
+    job = db.get(AudioJob, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Audio job not found")
+    try:
+        return process_upload_job(db, job)
+    except JobProcessingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
