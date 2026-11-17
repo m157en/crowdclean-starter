@@ -6,8 +6,6 @@ from pathlib import Path
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from app.audio_pipeline import analyze_wav
-from app.audio_preprocessing import prepare_audio
 from app.config import settings
 from app.models import AudioJob, AudioSegment
 
@@ -34,6 +32,9 @@ def process_upload_job(db: Session, job: AudioJob) -> AudioJob:
     db.commit()
 
     try:
+        from app.audio_pipeline import analyze_wav
+        from app.audio_preprocessing import prepare_audio
+
         with tempfile.TemporaryDirectory(prefix="crowdclean-job-") as tempdir:
             prepared = Path(tempdir) / "audio.wav"
             metadata = prepare_audio(source, prepared)
