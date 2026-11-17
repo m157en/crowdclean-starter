@@ -46,3 +46,11 @@ def test_precise_boundary_requires_remove_and_valid_range(client, tmp_path):
     assert json.loads(path.read_text())[0]["precise_boundary"] == {"start": 12.0, "end": 13.0}
     assert client.patch("/review/items/review-001.wav", json={"decision": "keep"}).status_code == 200
     assert "precise_boundary" not in json.loads(path.read_text())[0]
+
+
+def test_review_ui_uses_clip_relative_seconds(client):
+    response = client.get("/review")
+    assert response.status_code == 200
+    assert "секунды от начала этого фрагмента" in response.text
+    assert "start:item.start+start,end:item.start+end" in response.text
+    assert "player.currentTime=start;player.play()" in response.text
