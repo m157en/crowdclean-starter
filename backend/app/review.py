@@ -95,7 +95,7 @@ def review_page():
 @router.get("/items")
 def review_items():
     _, items = read_manifest()
-    return items
+    return [item for item in items if item.get("decision") == "remove"]
 
 
 @router.get("/audio/{filename}")
@@ -136,7 +136,7 @@ nav{display:flex;justify-content:space-between;align-items:center}
 audio{width:100%;margin:18px 0}small{color:#9ca3af}#error{color:#fca5a5}
 </style></head><body>
 <header><h1>CrowdClean · Review</h1><strong id="progress">Загрузка…</strong></header>
-<p>Прослушай эпизод и выбери KEEP (музыка) или REMOVE (DJ-выкрик). Оригинал не меняется.</p>
+<p>Показаны только подтверждённые REMOVE-эпизоды. Уточни границы выкрика внутри каждого. KEEP-эпизоды сохранены отдельно.</p>
 <div class="card">
 <nav><button id="prev">← Назад</button><span id="position"></span><button id="next">Далее →</button></nav>
 <h2 id="filename"></h2><p id="timing"></p><audio id="player" controls preload="none"></audio>
@@ -166,7 +166,7 @@ function render(){
  el("start").value=item.precise_boundary?.start ?? "";
  el("end").value=item.precise_boundary?.end ?? "";
  el("boundaryStatus").textContent=item.precise_boundary?"Границы сохранены":"Границы не заданы";
- el("progress").textContent=items.filter(x=>x.decision!=="pending").length+" / "+items.length+" размечено";
+ el("progress").textContent=items.filter(x=>x.precise_boundary).length+" / "+items.length+" границ уточнено";
  el("prev").disabled=index===0;el("next").disabled=index===items.length-1;
  el("error").textContent="";
 }
@@ -200,5 +200,5 @@ el("saveBoundary").onclick=async()=>{
 el("prev").onclick=()=>{index--;render()};
 el("next").onclick=()=>{index++;render()};
 document.querySelectorAll("[data-decision]").forEach(b=>b.onclick=()=>decide(b.dataset.decision));
-fetch("/review/items").then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(data=>{items=data;render()}).catch(e=>el("error").textContent=e.message);
+fetch("/review/items").then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(data=>{items=data;if(!items.length){el("progress").textContent="Нет REMOVE-эпизодов";return;}render()}).catch(e=>el("error").textContent=e.message);
 </script></body></html>"""
