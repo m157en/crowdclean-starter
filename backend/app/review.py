@@ -143,10 +143,10 @@ audio{width:100%;margin:18px 0}small{color:#9ca3af}#error{color:#fca5a5}
 <div><button class="keep" data-decision="keep">KEEP</button><button class="remove" data-decision="remove">REMOVE</button><button class="pending" data-decision="pending">Сбросить</button></div>
 <p id="decision"></p>
 <section id="boundarySection" hidden>
-<p>Точные границы выкрика (секунды от начала микса)</p>
-<label>Начало <input id="start" type="number" step="0.01"></label>
+<p>Границы выкрика (секунды от начала этого фрагмента, можно целыми числами)</p>
+<label>Начало <input id="start" type="number" min="0" step="1"></label>
 <button id="markStart">Начало = позиция плеера</button>
-<p><label>Конец <input id="end" type="number" step="0.01"></label>
+<p><label>Конец <input id="end" type="number" min="0" step="1"></label>
 <button id="markEnd">Конец = позиция плеера</button></p>
 <button id="preview">Прослушать диапазон</button>
 <button id="saveBoundary">Сохранить границы</button>
@@ -163,8 +163,8 @@ function render(){
  el("player").src="/review/audio/"+encodeURIComponent(item.file);
  el("decision").textContent="Решение: "+item.decision.toUpperCase();
  el("boundarySection").hidden=item.decision!=="remove";
- el("start").value=item.precise_boundary?.start ?? "";
- el("end").value=item.precise_boundary?.end ?? "";
+ el("start").value=item.precise_boundary ? Math.round((item.precise_boundary.start-item.start)*100)/100 : "";
+ el("end").value=item.precise_boundary ? Math.round((item.precise_boundary.end-item.start)*100)/100 : "";
  el("boundaryStatus").textContent=item.precise_boundary?"Границы сохранены":"Границы не заданы";
  el("progress").textContent=items.filter(x=>x.precise_boundary).length+" / "+items.length+" границ уточнено";
  el("prev").disabled=index===0;el("next").disabled=index===items.length-1;
@@ -179,20 +179,20 @@ async function decide(decision){
  }catch(e){el("error").textContent=e.message;}
 }
 
-el("markStart").onclick=()=>{el("start").value=(items[index].start+el("player").currentTime).toFixed(2)};
+el("markStart").onclick=()=>{el("start").value=Math.round(el("player").currentTime)};
 el("markEnd").onclick=()=>{el("end").value=(items[index].start+el("player").currentTime).toFixed(2)};
 el("preview").onclick=()=>{
  const item=items[index],start=Number(el("start").value),end=Number(el("end").value);
- if(!el("start").value||!el("end").value||start<item.start||end>item.end||start>=end){el("error").textContent="Проверь границы";return;}
- const player=el("player");player.currentTime=start-item.start;player.play();
- const stop=()=>{if(player.currentTime>=end-item.start){player.pause();player.removeEventListener("timeupdate",stop)}};
+ if(!el("start").value||!el("end").value||start<0||end>item.end-item.start||start>=end){el("error").textContent="Проверь границы";return;}
+ const player=el("player");player.currentTime=start;player.play();
+ const stop=()=>{if(player.currentTime>=end){player.pause();player.removeEventListener("timeupdate",stop)}};
  player.addEventListener("timeupdate",stop);
 };
 el("saveBoundary").onclick=async()=>{
  const item=items[index],start=Number(el("start").value),end=Number(el("end").value);
  if(!el("start").value||!el("end").value||!Number.isFinite(start)||!Number.isFinite(end)||start<item.start||end>item.end||start>=end){el("error").textContent="Некорректные границы";return;}
  try{
- const response=await fetch("/review/items/"+encodeURIComponent(item.file)+"/boundary",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({start,end})});
+ const response=await fetch("/review/items/"+encodeURIComponent(item.file)+"/boundary",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({start:item.start+start,end:item.start+end})});
  if(!response.ok)throw Error("HTTP "+response.status);
  items[index]=await response.json();render();
  }catch(e){el("error").textContent=e.message}
