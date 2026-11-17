@@ -190,7 +190,7 @@ el("preview").onclick=()=>{
 };
 el("saveBoundary").onclick=async()=>{
  const item=items[index],start=Number(el("start").value),end=Number(el("end").value);
- if(!el("start").value||!el("end").value||!Number.isFinite(start)||!Number.isFinite(end)||start<item.start||end>item.end||start>=end){el("error").textContent="Некорректные границы";return;}
+ if(!el("start").value||!el("end").value||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>item.end-item.start||start>=end){el("error").textContent="Некорректные границы";return;}
  try{
  const response=await fetch("/review/items/"+encodeURIComponent(item.file)+"/boundary",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({start:item.start+start,end:item.start+end})});
  if(!response.ok)throw Error("HTTP "+response.status);
