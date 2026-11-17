@@ -24,7 +24,7 @@ def merge_intervals(intervals, tolerance=0.15):
     return merged
 
 
-def analyze_wav(path, *, chunk_seconds=30, overlap_seconds=1):
+def analyze_wav(path, *, chunk_seconds=30, overlap_seconds=1, threshold=0.3):
     path = Path(path)
     if chunk_seconds <= overlap_seconds or overlap_seconds < 0:
         raise ValueError("Invalid chunk/overlap configuration")
@@ -57,6 +57,7 @@ def analyze_wav(path, *, chunk_seconds=30, overlap_seconds=1):
             stamps = get_speech_timestamps(
                 audio, model, sampling_rate=16000,
                 return_seconds=True,
+                threshold=threshold,
             )
 
             offset = start_frame / rate
