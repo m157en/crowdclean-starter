@@ -1,0 +1,184 @@
+{
+  "source": "lost-frequencies.mp3",
+  "detector": "silero-vad",
+  "threshold": 0.3,
+  "annotation_level": "review_episode",
+  "note": "KEEP/REMOVE labels apply to review clips including context, not exact speech boundaries; never use these ranges for destructive removal.",
+  "items": [
+    {
+      "file": "review-001.wav",
+      "start": 30.4,
+      "end": 47.8,
+      "detected_intervals": 5,
+      "decision": "keep"
+    },
+    {
+      "file": "review-002.wav",
+      "start": 554.1,
+      "end": 558.5,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-003.wav",
+      "start": 638.3,
+      "end": 670.8,
+      "detected_intervals": 4,
+      "decision": "keep"
+    },
+    {
+      "file": "review-004.wav",
+      "start": 897.6,
+      "end": 902,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-005.wav",
+      "start": 955.6,
+      "end": 960,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-006.wav",
+      "start": 1397.3,
+      "end": 1404.7,
+      "detected_intervals": 1,
+      "decision": "remove"
+    },
+    {
+      "file": "review-007.wav",
+      "start": 1421,
+      "end": 1427,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-008.wav",
+      "start": 1535.7,
+      "end": 1551.8,
+      "detected_intervals": 7,
+      "decision": "keep"
+    },
+    {
+      "file": "review-009.wav",
+      "start": 2030.9,
+      "end": 2035.2,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-010.wav",
+      "start": 2116.9,
+      "end": 2130.7,
+      "detected_intervals": 4,
+      "decision": "keep"
+    },
+    {
+      "file": "review-011.wav",
+      "start": 2142.6,
+      "end": 2160.3,
+      "detected_intervals": 5,
+      "decision": "keep"
+    },
+    {
+      "file": "review-012.wav",
+      "start": 2172.1,
+      "end": 2205.9,
+      "detected_intervals": 6,
+      "decision": "keep"
+    },
+    {
+      "file": "review-013.wav",
+      "start": 2347,
+      "end": 2357.7,
+      "detected_intervals": 3,
+      "decision": "remove"
+    },
+    {
+      "file": "review-014.wav",
+      "start": 2361.4,
+      "end": 2367.7,
+      "detected_intervals": 1,
+      "decision": "remove"
+    },
+    {
+      "file": "review-015.wav",
+      "start": 2369.7,
+      "end": 2374.1,
+      "detected_intervals": 1,
+      "decision": "remove"
+    },
+    {
+      "file": "review-016.wav",
+      "start": 2498.7,
+      "end": 2507,
+      "detected_intervals": 2,
+      "decision": "remove"
+    },
+    {
+      "file": "review-017.wav",
+      "start": 2521.7,
+      "end": 2526.2,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-018.wav",
+      "start": 2642.9,
+      "end": 2655.5,
+      "detected_intervals": 3,
+      "decision": "remove"
+    },
+    {
+      "file": "review-019.wav",
+      "start": 2656.6,
+      "end": 2662.1,
+      "detected_intervals": 1,
+      "decision": "remove"
+    },
+    {
+      "file": "review-020.wav",
+      "start": 2817.6,
+      "end": 2832.9,
+      "detected_intervals": 3,
+      "decision": "keep"
+    },
+    {
+      "file": "review-021.wav",
+      "start": 2840.6,
+      "end": 2845,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-022.wav",
+      "start": 3166.6,
+      "end": 3170.9,
+      "detected_intervals": 1,
+      "decision": "keep"
+    },
+    {
+      "file": "review-023.wav",
+      "start": 3181.4,
+      "end": 3193.9,
+      "detected_intervals": 4,
+      "decision": "keep"
+    },
+    {
+      "file": "review-024.wav",
+      "start": 3318.2,
+      "end": 3331.5,
+      "detected_intervals": 2,
+      "decision": "remove"
+    },
+    {
+      "file": "review-025.wav",
+      "start": 3334.2,
+      "end": 3338.6,
+      "detected_intervals": 1,
+      "decision": "keep"
+    }
+  ]
+}
