@@ -1,0 +1,58 @@
+name: CrowdClean isolated local audio pilot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crowdclean-local-audio
+  cancel-in-progress: false
+
+jobs:
+  pilot:
+    runs-on: [self-hosted, macOS, X64, crowdclean-audio-local]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout trusted CrowdClean branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/audio-mvp
+          persist-credentials: false
+      - name: Verify local-only source and dependencies
+        shell: bash
+        env:
+          SOURCE: ${{ runner.temp }}/crowdclean-local-source/lost-frequencies.mp3
+        run: |
+          set -euo pipefail
+          test -r "$SOURCE" || { echo "BLOCKED: audio missing from private runner temp"; exit 2; }
+          test -x backend/.venv-audio/bin/python || { echo "BLOCKED: dedicated audio venv missing"; exit 2; }
+          command -v ffmpeg >/dev/null || { echo "BLOCKED: ffmpeg missing"; exit 2; }
+          backend/.venv-audio/bin/python -c 'import demucs, numpy, soundfile; print("dependencies_ready=true")'
+      - name: Run tests
+        shell: bash
+        run: |
+          cd backend
+          .venv-audio/bin/python -m pytest -q
+      - name: Run two short stem previews and screening
+        shell: bash
+        env:
+          SOURCE: ${{ runner.temp }}/crowdclean-local-source/lost-frequencies.mp3
+        run: |
+          set -euo pipefail
+          cd backend
+          .venv-audio/bin/python -m app.audio_stems --source "$SOURCE" --output storage/analysis/ab-stems-v1 --limit 2
+          .venv-audio/bin/python -m app.audio_metrics --folder storage/analysis/ab-stems-v1 > storage/analysis/ab-stems-v1/metrics.json
+          .venv-audio/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("storage/analysis/ab-stems-v1/metrics.json")
+          d = json.loads(p.read_text())
+          print("CROWDCLEAN_PILOT_V1")
+          print("evaluated=", d["evaluated"])
+          print("status=", d["status"])
+          for i in d["items"]:
+              print(i["episode"], "target_level_change_db=", i["target_level_change_db"], "context_error_relative_db=", i["context_error_relative_db"], "clipped_samples=", i["clipped_samples"])
+          print("SCREENING_ONLY: no automatic quality approval")
+          PY
