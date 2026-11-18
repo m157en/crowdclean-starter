@@ -6,6 +6,7 @@ from strawberry.fastapi import GraphQLRouter
 
 from app.api.routes import router as api_router
 from app.review import router as review_router
+from app.ab_review import router as ab_router
 from app.config import settings
 from app.db import get_db, init_db
 from app.graphql.schema import schema
@@ -20,6 +21,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 app.include_router(api_router)
 app.include_router(review_router)
+app.include_router(ab_router)
 
 
 @app.get("/health", tags=["system"])
