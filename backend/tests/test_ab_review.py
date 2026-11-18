@@ -9,7 +9,7 @@ from app import ab_review
 
 
 def sample_report(folder: Path):
-    folder.mkdir(parents=True)
+    folder.mkdir(parents=True, exist_ok=True)
     (folder / "report.json").write_text(json.dumps({"items": [
         {"episode": "review-006", "start": 1.0, "end": 2.0,
          "original": "review-006-original.wav", "preview": "review-006-ducked.wav"}
