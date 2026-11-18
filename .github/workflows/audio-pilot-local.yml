@@ -23,28 +23,28 @@ jobs:
       - name: Verify local-only source and dependencies
         shell: bash
         env:
-          SOURCE: ${{ runner.temp }}/crowdclean-local-source/lost-frequencies.mp3
+          SOURCE: $HOME/.crowdclean-private/lost-frequencies.mp3
         run: |
           set -euo pipefail
           test -r "$SOURCE" || { echo "BLOCKED: audio missing from private runner temp"; exit 2; }
-          test -x backend/.venv-audio/bin/python || { echo "BLOCKED: dedicated audio venv missing"; exit 2; }
+          test -x "$HOME/.crowdclean-private/venv/bin/python" || { echo "BLOCKED: dedicated audio venv missing"; exit 2; }
           command -v ffmpeg >/dev/null || { echo "BLOCKED: ffmpeg missing"; exit 2; }
-          backend/.venv-audio/bin/python -c 'import demucs, numpy, soundfile; print("dependencies_ready=true")'
+          "$HOME/.crowdclean-private/venv/bin/python" -c 'import demucs, numpy, soundfile; print("dependencies_ready=true")'
       - name: Run tests
         shell: bash
         run: |
           cd backend
-          .venv-audio/bin/python -m pytest -q
+          "$HOME/.crowdclean-private/venv/bin/python" -m pytest -q
       - name: Run two short stem previews and screening
         shell: bash
         env:
-          SOURCE: ${{ runner.temp }}/crowdclean-local-source/lost-frequencies.mp3
+          SOURCE: $HOME/.crowdclean-private/lost-frequencies.mp3
         run: |
           set -euo pipefail
           cd backend
-          .venv-audio/bin/python -m app.audio_stems --source "$SOURCE" --output storage/analysis/ab-stems-v1 --limit 2
-          .venv-audio/bin/python -m app.audio_metrics --folder storage/analysis/ab-stems-v1 > storage/analysis/ab-stems-v1/metrics.json
-          .venv-audio/bin/python - <<'PY'
+          "$HOME/.crowdclean-private/venv/bin/python" -m app.audio_stems --source "$SOURCE" --output storage/analysis/ab-stems-v1 --limit 2
+          "$HOME/.crowdclean-private/venv/bin/python" -m app.audio_metrics --folder storage/analysis/ab-stems-v1 > storage/analysis/ab-stems-v1/metrics.json
+          "$HOME/.crowdclean-private/venv/bin/python" - <<'PY'
           import json
           from pathlib import Path
           p = Path("storage/analysis/ab-stems-v1/metrics.json")
