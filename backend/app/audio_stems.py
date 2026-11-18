@@ -5,6 +5,8 @@ No inference is run on import; install and model download are explicit local ste
 """
 import argparse
 import json
+import importlib.util
+import sys
 import math
 import shutil
 import subprocess
@@ -61,8 +63,8 @@ def create_stem_previews(source: Path, dataset: Path, output: Path, *,
         raise ValueError("Invalid gain or limit")
     if shutil.which("ffmpeg") is None:
         raise RuntimeError("ffmpeg is required")
-    if shutil.which("demucs") is None:
-        raise RuntimeError("Demucs CLI missing; install optional separator dependencies locally")
+    if importlib.util.find_spec("demucs") is None:
+        raise RuntimeError("Demucs is not installed in this Python environment")
     items = json.loads(dataset.read_text(encoding="utf-8"))["items"]
     targets = [item for item in items if item["decision"] == "remove"][:limit]
     if not targets:
@@ -84,7 +86,7 @@ def create_stem_previews(source: Path, dataset: Path, output: Path, *,
                  "-t", str(window_end-window_start), "-ar", "44100",
                  "-ac", "2", "-c:a", "pcm_f32le", str(decoded)])
             separated = workspace / "separated"
-            run(["demucs", "--two-stems", "vocals", "-n", model,
+            run([sys.executable, "-m", "demucs", "--two-stems", "vocals", "-n", model,
                  "-o", str(separated), str(decoded)])
             stems = separated / model / name
             vocals, vr = sf.read(stems / "vocals.wav", dtype="float32", always_2d=True)
