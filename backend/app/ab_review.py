@@ -14,16 +14,17 @@ from app.config import settings
 router = APIRouter(prefix="/ab", tags=["local A/B evaluation"])
 BASE = Path("analysis/ab-preview-v1")
 STEMS_BASE = Path("analysis/ab-stems-v1")
+STEMS_V2_BASE = Path("analysis/ab-stems-v2")
 
 
-def preview_dir(stems: bool = False) -> Path:
+def preview_dir(stems: bool = False, v2: bool = False) -> Path:
     if settings.environment != "local":
         raise HTTPException(404, "A/B previews only available locally")
-    return (settings.storage_dir / (STEMS_BASE if stems else BASE)).resolve()
+    return (settings.storage_dir / (STEMS_V2_BASE if v2 else STEMS_BASE if stems else BASE)).resolve()
 
 
-def read_report(stems: bool = False) -> tuple[Path, dict]:
-    folder = preview_dir(stems)
+def read_report(stems: bool = False, v2: bool = False) -> tuple[Path, dict]:
+    folder = preview_dir(stems, v2)
     try:
         data = json.loads((folder / "report.json").read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -144,6 +145,45 @@ def stems_audio(filename: str):
 @router.put("/stems/ratings/{episode}")
 def stems_rate(episode: str, payload: Rating):
     folder, data = read_report(stems=True)
+    if episode not in {item["episode"] for item in data["items"]}:
+        raise HTTPException(404, "Unknown A/B episode")
+    ratings = read_ratings(folder)
+    ratings[episode] = payload.verdict
+    atomic_write(folder / "ratings.json", ratings)
+    return {"episode": episode, "rating": payload.verdict}
+
+
+
+@router.get("/stems-v2", response_class=HTMLResponse)
+def stems_v2_page():
+    read_report(v2=True)
+    return HTMLResponse(PAGE.replace("/ab/", "/ab/stems-v2/").replace(
+        "A/B-прослушивание", "A/B-разделение вокала v2"))
+
+
+@router.get("/stems-v2/items")
+def stems_v2_items():
+    folder, data = read_report(v2=True)
+    ratings = read_ratings(folder)
+    return {"items": [{**item, "rating": ratings.get(item["episode"])} for item in data["items"]],
+            "warning": data.get("warning", "")}
+
+
+@router.get("/stems-v2/audio/{filename}")
+def stems_v2_audio(filename: str):
+    folder, data = read_report(v2=True)
+    allowed = {item[key] for item in data["items"] for key in ("original", "preview")}
+    if filename not in allowed:
+        raise HTTPException(404, "Unknown preview file")
+    path = (folder / filename).resolve()
+    if not path.is_relative_to(folder) or not path.is_file():
+        raise HTTPException(404, "Preview audio missing")
+    return FileResponse(path, media_type="audio/wav", filename=filename)
+
+
+@router.put("/stems-v2/ratings/{episode}")
+def stems_v2_rate(episode: str, payload: Rating):
+    folder, data = read_report(v2=True)
     if episode not in {item["episode"] for item in data["items"]}:
         raise HTTPException(404, "Unknown A/B episode")
     ratings = read_ratings(folder)
