@@ -15,16 +15,17 @@ router = APIRouter(prefix="/ab", tags=["local A/B evaluation"])
 BASE = Path("analysis/ab-preview-v1")
 STEMS_BASE = Path("analysis/ab-stems-v1")
 STEMS_V2_BASE = Path("analysis/ab-stems-v2")
+STEMS_V3_BASE = Path("analysis/ab-stems-v3")
 
 
-def preview_dir(stems: bool = False, v2: bool = False) -> Path:
+def preview_dir(stems: bool = False, v2: bool = False, v3: bool = False) -> Path:
     if settings.environment != "local":
         raise HTTPException(404, "A/B previews only available locally")
-    return (settings.storage_dir / (STEMS_V2_BASE if v2 else STEMS_BASE if stems else BASE)).resolve()
+    return (settings.storage_dir / (STEMS_V3_BASE if v3 else STEMS_V2_BASE if v2 else STEMS_BASE if stems else BASE)).resolve()
 
 
-def read_report(stems: bool = False, v2: bool = False) -> tuple[Path, dict]:
-    folder = preview_dir(stems, v2)
+def read_report(stems: bool = False, v2: bool = False, v3: bool = False) -> tuple[Path, dict]:
+    folder = preview_dir(stems, v2, v3)
     try:
         data = json.loads((folder / "report.json").read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -184,6 +185,48 @@ def stems_v2_audio(filename: str):
 @router.put("/stems-v2/ratings/{episode}")
 def stems_v2_rate(episode: str, payload: Rating):
     folder, data = read_report(v2=True)
+    if episode not in {item["episode"] for item in data["items"]}:
+        raise HTTPException(404, "Unknown A/B episode")
+    ratings = read_ratings(folder)
+    ratings[episode] = payload.verdict
+    atomic_write(folder / "ratings.json", ratings)
+    return {"episode": episode, "rating": payload.verdict}
+
+
+
+@router.get("/stems-v3", response_class=HTMLResponse)
+def stems_v3_page():
+    read_report(v3=True)
+    return HTMLResponse(PAGE.replace("/ab/", "/ab/stems-v3/")
+                        .replace("A/B-прослушивание", "A/B: три метода v3")
+                        .replace("Обработанный вариант приглушает всю музыку вместе с голосом — это эксперимент, не готовая очистка.",
+                                 "Три экспериментальных способа сохранения музыки; оцени каждый отдельно.")
+                        .replace("B — Приглушённый", "B — Обработанный v3"))
+
+
+@router.get("/stems-v3/items")
+def stems_v3_items():
+    folder, data = read_report(v3=True)
+    ratings = read_ratings(folder)
+    return {"items": [{**item, "rating": ratings.get(item["episode"])} for item in data["items"]],
+            "warning": data.get("warning", "")}
+
+
+@router.get("/stems-v3/audio/{filename}")
+def stems_v3_audio(filename: str):
+    folder, data = read_report(v3=True)
+    allowed = {item[key] for item in data["items"] for key in ("original", "preview")}
+    if filename not in allowed:
+        raise HTTPException(404, "Unknown preview file")
+    path = (folder / filename).resolve()
+    if not path.is_relative_to(folder) or not path.is_file():
+        raise HTTPException(404, "Preview audio missing")
+    return FileResponse(path, media_type="audio/wav", filename=filename)
+
+
+@router.put("/stems-v3/ratings/{episode}")
+def stems_v3_rate(episode: str, payload: Rating):
+    folder, data = read_report(v3=True)
     if episode not in {item["episode"] for item in data["items"]}:
         raise HTTPException(404, "Unknown A/B episode")
     ratings = read_ratings(folder)
