@@ -71,6 +71,9 @@ jobs:
           OUTPUT="$HOME/Documents/crowdclean-starter/backend/storage/analysis/ab-stems-v3"
           cd backend
           "$PY" -m app.audio_metrics --folder "$OUTPUT" > "$OUTPUT/metrics.json"
+          if [ ! -e "$OUTPUT/listen-v3.html" ]; then
+            "$PY" -m app.audio_review_static --folder "$OUTPUT"
+          fi
           "$PY" - <<'PY'
           import json
           from pathlib import Path
@@ -86,5 +89,6 @@ jobs:
                     "target_level_change_db=", item["target_level_change_db"],
                     "context_error_relative_db=", item["context_error_relative_db"],
                     "clipped_samples=", item["clipped_samples"])
+          print("OFFLINE_LISTENING_PAGE:", folder / "listen-v3.html")
           print("SCREENING_ONLY: subjective listening still required")
           PY
