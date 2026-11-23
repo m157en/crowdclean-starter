@@ -22,12 +22,16 @@ test = [
   "pytest>=8.0,<10.0",
   "httpx2",
   "pytest-cov>=5.0,<7.0",
+  "numpy>=1.23,<3",
+  "soundfile>=0.13,<1",
+  "scipy>=1.11,<2",
 ]
 audio = [
     "silero-vad>=6.2.3,<7",
     "soundfile>=0.13,<1",
     "numpy>=1.23",
     "numpy<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "scipy>=1.11,<2",
     "torch==2.2.2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
 ]
 
