@@ -9,6 +9,19 @@ from pathlib import Path
 from app.audio_preprocessing import prepare_audio
 
 
+def load_silero_vad():
+    """Load the speech model only for a real inference job."""
+    from silero_vad import load_silero_vad as load
+    return load()
+
+
+def get_speech_timestamps(audio, model, **kwargs):
+    """Convert NumPy chunks to Torch only at the inference boundary."""
+    import torch
+    from silero_vad import get_speech_timestamps as detect
+    return detect(torch.from_numpy(audio), model, **kwargs)
+
+
 def merge_intervals(intervals, tolerance=0.15):
     merged = []
     for interval in sorted(intervals, key=lambda x: x["start"]):
@@ -27,8 +40,6 @@ def analyze_wav(path, *, chunk_seconds=30, overlap_seconds=1, threshold=0.3):
 
     # Inference-only dependencies must not be imported by API/test collection.
     import numpy as np
-    import torch
-    from silero_vad import get_speech_timestamps, load_silero_vad
 
     model = load_silero_vad()
     intervals = []
@@ -53,7 +64,7 @@ def analyze_wav(path, *, chunk_seconds=30, overlap_seconds=1, threshold=0.3):
                 break
 
             samples = np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768.0
-            audio = torch.from_numpy(samples)
+            audio = samples
 
             stamps = get_speech_timestamps(
                 audio, model, sampling_rate=16000,
