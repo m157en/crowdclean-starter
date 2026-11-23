@@ -48,7 +48,7 @@ def band_voice(vocals, sr):
 
 
 def spectral_repair(vocals, sr, a, b):
-    """Experimental time-frequency interpolation across speech band.
+    """Conservative vocal-stem spectral attenuation, not true inpainting.
 
     Long spans cannot be faithfully reconstructed; this is a diagnostic baseline.
     """
@@ -127,7 +127,8 @@ def create(source, output):
                 sf.write(result/name, np.clip(candidate, -0.999, 0.999),
                          sr, subtype="PCM_16")
                 items.append({"episode": f"{episode}-{method}", "source_episode": episode,
-                              "start": start, "end": end, "original": original_name,
+                              "start": start, "end": end, "window_start": window_start,
+                              "original": original_name,
                               "preview": name, "method": method,
                               "peak_before_clipping": round(peak, 5),
                               "clipped_samples_prevented": int(np.count_nonzero(np.abs(candidate)>0.999))})
