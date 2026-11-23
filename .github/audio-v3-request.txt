@@ -1,0 +1,1 @@
+CrowdClean v3 private Mac pilot, once. Requested 2026-11-23. Check CI first; never overwrite existing local previews; do not upload audio.
