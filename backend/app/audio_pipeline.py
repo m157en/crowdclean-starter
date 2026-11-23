@@ -6,10 +6,6 @@ import tempfile
 import wave
 from pathlib import Path
 
-import numpy as np
-import torch
-from silero_vad import get_speech_timestamps, load_silero_vad
-
 from app.audio_preprocessing import prepare_audio
 
 
@@ -28,6 +24,11 @@ def analyze_wav(path, *, chunk_seconds=30, overlap_seconds=1, threshold=0.3):
     path = Path(path)
     if chunk_seconds <= overlap_seconds or overlap_seconds < 0:
         raise ValueError("Invalid chunk/overlap configuration")
+
+    # Inference-only dependencies must not be imported by API/test collection.
+    import numpy as np
+    import torch
+    from silero_vad import get_speech_timestamps, load_silero_vad
 
     model = load_silero_vad()
     intervals = []
