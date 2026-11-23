@@ -42,3 +42,19 @@ def test_ab_page_uses_local_report(tmp_path):
     sample_report(tmp_path)
     with patch.object(ab_review, "preview_dir", return_value=tmp_path):
         assert "A/B-прослушивание" in ab_review.page().body.decode("utf-8")
+
+
+def test_v3_route_and_audio_list_use_own_preview_folder(client, tmp_path, monkeypatch):
+    folder = tmp_path / "analysis" / "ab-stems-v3"
+    sample_report(folder)
+    monkeypatch.setattr(ab_review.settings, "storage_dir", tmp_path)
+    monkeypatch.setattr(ab_review.settings, "environment", "local")
+    page_response = client.get("/ab/stems-v3")
+    assert page_response.status_code == 200
+    assert "/ab/stems-v3/items" in page_response.text
+    assert "/ab/stems-v3/audio/" in page_response.text
+    response = client.get("/ab/stems-v3/items")
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 1
+    assert client.get("/ab/stems-v3/audio/review-006-original.wav").status_code == 200
+    assert client.get("/ab/stems-v3/audio/nonexistent.wav").status_code == 404
