@@ -61,14 +61,19 @@ def evaluate(folder: Path, *, source_dataset: Path | None = None) -> dict:
         if rate != processed_rate:
             raise ValueError("Sample rates differ")
         episode = item["episode"]
-        if episode in boundaries:
-            start = float(boundaries[episode]["precise_boundary"]["start"])
-            end = float(boundaries[episode]["precise_boundary"]["end"])
-        else:
+        # Report boundaries are authoritative: experimental v2/v3 may deliberately
+        # correct the dataset onset. Fall back to dataset for legacy reports only.
+        annotated = boundaries.get(item.get("source_episode", episode))
+        if "start" in item and "end" in item:
             start, end = float(item["start"]), float(item["end"])
-        # Preview generation always begins 2 seconds before annotated boundary,
-        # except at time zero.
-        window_start = max(0.0, start - 2.0)
+        elif annotated is not None:
+            start = float(annotated["precise_boundary"]["start"])
+            end = float(annotated["precise_boundary"]["end"])
+        else:
+            raise ValueError("No interval boundary in report or dataset")
+        # v2/v3 have 3 s pre-roll; older reports have 2 s. Never assume the
+        # dataset's older boundary overrides a manually corrected speech onset.
+        window_start = float(item.get("window_start", max(0.0, start - 2.0)))
         metrics = analyze_pair(original, processed, rate, start - window_start, end - window_start)
         results.append({"episode": episode, **metrics})
     return {"method": report["items"][0].get("method") if results else None,
