@@ -1,1 +1,1 @@
-CrowdClean v3 private Mac pilot, once. Requested 2026-11-23. Check CI first; never overwrite existing local previews; do not upload audio.
+CrowdClean v3 private Mac follow-up: produce static offline listening index and metrics once the original queued run finishes. Requested 2026-11-23. Never overwrite private audio; skip Demucs when an existing valid v3 report is present.
