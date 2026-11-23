@@ -1,1 +1,1 @@
-CrowdClean v3 private Mac follow-up: produce static offline listening index and metrics once the original queued run finishes. Requested 2026-11-23. Never overwrite private audio; skip Demucs when an existing valid v3 report is present.
+CrowdClean v3 private Mac retry after fixing NumPy 2.x incompatibility with torch 2.2.2. Pin NumPy 1.26.4 / SciPy 1.13.1; render two annotated episodes only; do not overwrite original or earlier previews. 2026-11-23.
