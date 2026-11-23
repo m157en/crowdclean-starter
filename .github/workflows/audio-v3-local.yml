@@ -1,0 +1,86 @@
+name: CrowdClean v3 - isolated Mac audio pilot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/audio-mvp]
+    paths:
+      - ".github/audio-v3-request.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crowdclean-v3-mac-local
+  cancel-in-progress: false
+
+jobs:
+  audio-v3:
+    runs-on: [self-hosted, macOS, X64, crowdclean-audio-local]
+    timeout-minutes: 30
+    steps:
+      - name: Check out trusted feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/audio-mvp
+          persist-credentials: false
+
+      - name: Validate private source and local audio tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          PY="$HOME/.crowdclean-private/venv/bin/python"
+          SOURCE="$HOME/.crowdclean-private/lost-frequencies.mp3"
+          test -x "$PY" || { echo "BLOCKED: private Python environment unavailable"; exit 2; }
+          test -r "$SOURCE" || { echo "BLOCKED: MP3 unavailable; source is not stored on GitHub"; exit 2; }
+          command -v ffmpeg >/dev/null || { echo "BLOCKED: ffmpeg missing"; exit 2; }
+          "$PY" -c 'import numpy, soundfile, scipy, demucs; print("AUDIO_DEPENDENCIES_OK")'
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 "$SOURCE" | head -1
+
+      - name: Verify v3 signal-processing tests on Mac
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd backend
+          "$HOME/.crowdclean-private/venv/bin/python" -m pytest -q tests/test_audio_stems_v3.py tests/test_audio_metrics.py
+
+      - name: Render two short episodes to private Mac storage (never overwrite)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PY="$HOME/.crowdclean-private/venv/bin/python"
+          SOURCE="$HOME/.crowdclean-private/lost-frequencies.mp3"
+          OUTPUT="$HOME/Documents/crowdclean-starter/backend/storage/analysis/ab-stems-v3"
+          cd backend
+          if [ -e "$OUTPUT" ]; then
+            test -s "$OUTPUT/report.json" || { echo "BLOCKED: output directory already exists but no report"; exit 3; }
+            echo "PREVIOUS_V3_OUTPUT_PRESENT; not overwriting existing audio"
+          else
+            "$PY" -m app.audio_stems_v3 --source "$SOURCE" --output "$OUTPUT"
+          fi
+
+      - name: Run screening metrics and print evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          PY="$HOME/.crowdclean-private/venv/bin/python"
+          OUTPUT="$HOME/Documents/crowdclean-starter/backend/storage/analysis/ab-stems-v3"
+          cd backend
+          "$PY" -m app.audio_metrics --folder "$OUTPUT" > "$OUTPUT/metrics.json"
+          "$PY" - <<'PY'
+          import json
+          from pathlib import Path
+          folder = Path.home() / "Documents/crowdclean-starter/backend/storage/analysis/ab-stems-v3"
+          report = json.loads((folder / "report.json").read_text())
+          metrics = json.loads((folder / "metrics.json").read_text())
+          assert len(report["items"]) == len(metrics["items"]) == 6
+          print("V3_LOCAL_AUDIO_RENDERED: true")
+          print("episodes:", sorted(set(x["source_episode"] for x in report["items"])))
+          print("variants:", len(report["items"]))
+          for item in metrics["items"]:
+              print(item["episode"],
+                    "target_level_change_db=", item["target_level_change_db"],
+                    "context_error_relative_db=", item["context_error_relative_db"],
+                    "clipped_samples=", item["clipped_samples"])
+          print("SCREENING_ONLY: subjective listening still required")
+          PY
