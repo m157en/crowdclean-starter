@@ -34,6 +34,10 @@ jobs:
           test -x "$PY" || { echo "BLOCKED: private Python environment unavailable"; exit 2; }
           test -r "$SOURCE" || { echo "BLOCKED: MP3 unavailable; source is not stored on GitHub"; exit 2; }
           command -v ffmpeg >/dev/null || { echo "BLOCKED: ffmpeg missing"; exit 2; }
+          command -v ffprobe >/dev/null || { echo "BLOCKED: ffprobe missing"; exit 2; }
+          if ! "$PY" -c 'import scipy' >/dev/null 2>&1; then
+            "$PY" -m pip install --disable-pip-version-check "scipy>=1.11,<2"
+          fi
           "$PY" -c 'import numpy, soundfile, scipy, demucs; print("AUDIO_DEPENDENCIES_OK")'
           ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 "$SOURCE" | head -1
 
