@@ -35,10 +35,15 @@ jobs:
           test -r "$SOURCE" || { echo "BLOCKED: MP3 unavailable; source is not stored on GitHub"; exit 2; }
           command -v ffmpeg >/dev/null || { echo "BLOCKED: ffmpeg missing"; exit 2; }
           command -v ffprobe >/dev/null || { echo "BLOCKED: ffprobe missing"; exit 2; }
-          if ! "$PY" -c 'import scipy' >/dev/null 2>&1; then
-            "$PY" -m pip install --disable-pip-version-check "scipy>=1.11,<2"
-          fi
-          "$PY" -c 'import numpy, soundfile, scipy, demucs; print("AUDIO_DEPENDENCIES_OK")'
+          # Torch 2.2.2 on Intel Mac requires NumPy 1.x; latest SciPy pulls 2.x.
+          "$PY" -m pip install --disable-pip-version-check "numpy==1.26.4" "scipy==1.13.1"
+          "$PY" - <<'PY'
+          import numpy as np
+          import scipy, soundfile, demucs, torch
+          assert np.__version__.split(".")[0] == "1"
+          assert torch.from_numpy(np.array([1.0], dtype=np.float32)).item() == 1.0
+          print("AUDIO_DEPENDENCIES_OK; numpy=", np.__version__, "scipy=", scipy.__version__, "torch=", torch.__version__)
+          PY
           ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 "$SOURCE" | head -1
 
       - name: Verify v3 signal-processing tests on Mac
