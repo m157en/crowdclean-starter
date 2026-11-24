@@ -10,13 +10,15 @@ from pathlib import Path
 from urllib.parse import quote
 
 
-def export_review(folder: Path) -> Path:
+def export_review(folder: Path, version: str = "v3") -> Path:
+    if version not in ("v3", "v4"):
+        raise ValueError("Unsupported review version")
     folder = folder.resolve()
     report = json.loads((folder / "report.json").read_text(encoding="utf-8"))
     items = report.get("items")
     if not isinstance(items, list) or not items:
         raise ValueError("Report is empty or malformed")
-    output = folder / "listen-v3.html"
+    output = folder / f"listen-{version}.html"
     if output.exists():
         raise FileExistsError(output)
     groups = {}
@@ -43,9 +45,9 @@ label{display:block;font-weight:650}small{color:#cbd5e1}
     parts = [
         '<!doctype html><html lang="ru"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
-        '<title>CrowdClean v3 — private A/B</title>',
+        f'<title>CrowdClean {version} — private A/B</title>',
         '<style>'+styles+'</style></head><body>',
-        '<h1>CrowdClean · v3: сравнение музыки и удаления голоса DJ</h1>',
+        f'<h1>CrowdClean · {version}: сравнение музыки и удаления голоса DJ</h1>',
         '<p>Локальное прослушивание. Файлы не отправляются в интернет. '
         'Сравнивай одинаковые фрагменты при одинаковой громкости устройства. '
         'Эти методы экспериментальные и могут повредить элементы музыки.</p>'
